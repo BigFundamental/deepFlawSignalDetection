@@ -9,7 +9,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHan
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
 from urllib.parse import unquote
-import threading, time
+import os
+import threading
 import json
 import traceback
 import logging
@@ -27,8 +28,8 @@ https://pymotw.com/2/BaseHTTPServer/
 """
 # class Handler(BaseHTTPRequestHandler):
 class Handler(BaseHTTPRequestHandler):
-    deep_predictor = DeepPredictor('./models/deep_model/-8729.meta', './models/deep_model/')
-
+    # deep_predictor = DeepPredictor('./models/deep_model/-8729.meta', './models/deep_model/')
+    deep_predictor = DeepPredictor(os.path.join('models', 'deep_model', '-8729.meta'), os.path.join('models', 'deep_model'))
     def get_params_(self):
         query_components = parse_qs(urlparse(unquote(self.path)).query)
         mode = urlparse(unquote(self.path)).path.strip('/')
