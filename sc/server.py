@@ -66,8 +66,8 @@ class Handler(BaseHTTPRequestHandler):
             jsonRetParam['speed'] = pred_ret['speed']
             jsonRetParam['reason'] = pred_ret['reason']
             jsonRetParam['speedResult'] = pred_ret['speedResult']
-            # jsonRetParam['waveResult'] = max(pred_ret['waveResult'], deep_wave_result)
-            jsonRetParam['waveResult'] = int(deep_wave_result)
+            jsonRetParam['waveResult'] = max(pred_ret['waveResult'], int(deep_wave_result))
+            # jsonRetParam['waveResult'] = int(deep_wave_result)
             jsonRetParam['waveScore'] = pred_ret['waveScore']
         except:
             traceback.print_exc()

@@ -41,7 +41,7 @@ class DeepFeatureExtractor(object):
     @staticmethod
     def stacked_channel_signals_(signal_vec, signal_len, n_fold=4):
         stacked_signals = np.stack(signal_vec, axis=-1)
-        print("stack signal shape", stacked_signals.shape)
+        # print("stack signal shape", stacked_signals.shape)
         x, y, z = stacked_signals.shape[0], stacked_signals.shape[1] // n_fold, stacked_signals.shape[2] * n_fold
         # signals.shape[0], signals.shape[1] // split_num, signals.shape[2] * split_num
         return np.reshape(stacked_signals, (x, y, z)), z
