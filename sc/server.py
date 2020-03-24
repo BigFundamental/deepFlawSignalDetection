@@ -62,7 +62,7 @@ class Handler(BaseHTTPRequestHandler):
             #print pred_ret
             # merge version
             # jsonRetParam['resultCode'] = max(pred_ret['stat'], deep_wave_result)
-            jsonRetParam['resultCode'] = max(float(deep_wave_result), pred_ret['stat'])
+            jsonRetParam['resultCode'] = max(int(deep_wave_result), pred_ret['stat'])
             jsonRetParam['speed'] = pred_ret['speed']
             jsonRetParam['reason'] = pred_ret['reason']
             jsonRetParam['speedResult'] = pred_ret['speedResult']
