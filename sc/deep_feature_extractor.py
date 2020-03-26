@@ -8,6 +8,7 @@ brief: signal pattern extractors
 import numpy as np
 from sc.filter import Filter
 from sc.signal_manager import SignalMgr
+from sc.model import ModelVersionFeatureConfig as mc
 
 class DeepFeatureExtractor(object):
     """
@@ -19,7 +20,7 @@ class DeepFeatureExtractor(object):
 
     @staticmethod
     def features(raw_signal, norm_feas, n_channel=4):
-        norm_signal = np.array([DeepFeatureExtractor.get_norm_signals(raw_signal)])
+        norm_signal = np.array([DeepFeatureExtractor.get_norm_signals(raw_signal, mc['gbdt_smooth_signal']['norm_mean'], mc['gbdt_smooth_signal']['norm_std'])])
         # print("norm_signal", norm_signal)
         # print("norm_signal shape", norm_signal.shape)
         # print("norm_signal shape:", norm_signal.shape)
@@ -47,9 +48,9 @@ class DeepFeatureExtractor(object):
         return np.reshape(stacked_signals, (x, y, z)), z
 
     @staticmethod
-    def get_norm_signals(raw_signal):
-        mu = np.mean(raw_signal)
-        delta = np.std(raw_signal)
+    def get_norm_signals(raw_signal, mu, delta):
+        # mu = np.mean(raw_signal)
+        # delta = np.std(raw_signal)
         if delta == 0.0:
             delta = 1.0
         return (raw_signal - mu) / delta
