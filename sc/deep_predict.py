@@ -29,7 +29,7 @@ class DeepPredictor(object):
     def predict(self, raw_signals, features, n_channels):
         # self.graph = tf.get_default_graph()
         deep_signals, signal_len = DeepFeatureExtractor.features(raw_signals[0:1024], features, n_channels)
-        feature_names = mc['gbdt_smooth_signal']['features']
+        feature_names = mc['skew_valley_diff_enhance']['features']
         feature_vec = get_features_vec(features, feature_names)
         pred_score = self.sess.run([self.pred], feed_dict={self.X_INPUT_PLACEHOLDER: deep_signals,
                                                     self.X_FEA_INPUT_PLACEHOLDER: np.array([feature_vec]),
