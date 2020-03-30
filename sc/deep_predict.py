@@ -39,12 +39,10 @@ class DeepPredictor(object):
 
 def get_features_vec(features, feature_names):
     sorted_features = sorted(feature_names)
-
     fea_vec = np.zeros(len(feature_names))
     i = 0
     for feature_name in sorted_features:
         fea_vec[i] = features[feature_name]
+        # print(feature_name, features[feature_name], fea_vec[i])
         i += 1
     return fea_vec
-
-    return feature_set

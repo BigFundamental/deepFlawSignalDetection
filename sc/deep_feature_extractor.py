@@ -20,6 +20,7 @@ class DeepFeatureExtractor(object):
 
     @staticmethod
     def features(raw_signal, norm_feas, n_channel=4):
+        # print(mc['skew_valley_diff_enhance']['norm_mean'], mc['skew_valley_diff_enhance']['norm_std'])
         norm_signal = np.array([DeepFeatureExtractor.get_norm_signals(raw_signal, mc['skew_valley_diff_enhance']['norm_mean'], mc['skew_valley_diff_enhance']['norm_std'])])
         # print("norm_signal", norm_signal)
         # print("norm_signal shape", norm_signal.shape)

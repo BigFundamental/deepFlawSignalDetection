@@ -30,6 +30,7 @@ class Classifier(object):
         if model_version != '' and model_version in ModelVersionFeatureConfig:
             self.wanted_features = ModelVersionFeatureConfig[model_version]['features']
             model_path = os.path.sep.join([os.path.dirname(os.path.abspath(__file__)), '..', 'models', ModelVersionFeatureConfig[model_version]['path'],'model.pkl'])
+            print("model_path:", model_path)
 
         if model_path == 'train' or model_path == None:
             return

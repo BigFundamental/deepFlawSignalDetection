@@ -28,7 +28,7 @@ https://pymotw.com/2/BaseHTTPServer/
 """
 # class Handler(BaseHTTPRequestHandler):
 class Handler(BaseHTTPRequestHandler):
-    deep_predictor = DeepPredictor(os.path.join('models', 'deep_model', '-8700.meta'), os.path.join('models', 'deep_model'))
+    deep_predictor = DeepPredictor(os.path.join('models', 'deep_model', '-2784.meta'), os.path.join('models', 'deep_model'))
     def get_params_(self):
         query_components = parse_qs(urlparse(unquote(self.path)).query)
         mode = urlparse(unquote(self.path)).path.strip('/')

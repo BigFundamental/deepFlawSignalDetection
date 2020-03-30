@@ -81,7 +81,7 @@ class SignalMgr(object):
        elif 'model_path' in request_param:
            classifier = Classifier(model_path=request_param['model_path'][0])
        else:
-           print(SignalMgr.signalParams['DEFAULT_MODEL_VERSION'])
+           # print(SignalMgr.signalParams['DEFAULT_MODEL_VERSION'])
            classifier = Classifier(model_version=SignalMgr.signalParams['DEFAULT_MODEL_VERSION'])
        
        return classifier.predict(raw_signals, SignalMgr.signalParams, request_param)

@@ -85,7 +85,7 @@ class DataReader(object):
         for result_path in result_path_list:
             df_part = self.create_single_index(result_path)
             df_ret = df_ret.append(df_part)
-            print(result_path, len(df_part.index), len(df_ret.index))
+            # print(result_path, len(df_part.index), len(df_ret.index))
         df_ret['expect_result'] = map(int,(~(df_ret['reason'] == -1)))
         return df_ret
 
