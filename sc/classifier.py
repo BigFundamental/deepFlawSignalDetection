@@ -719,12 +719,35 @@ class Classifier(object):
         return [skew_level_1, skew_level_2, skew_level_3, skew_level_4]
 
     def getVallayHeightFeatures(self, raw_signals, paired_edges, n_seg=4):
+        """
+        下高低底部的落差
+        """
         valley_pos = []
         for i in range(1, len(paired_edges)):
             last_down = paired_edges[i - 1][1]
             cur_up = paired_edges[i][0]
             valley_pos.append((last_down[1] + cur_up[0]) // 2)
         valley_height = [0.0] * n_seg
+
+        for start in range(0, n_seg):
+            tmp_valley_height = []
+            for index in range(start, len(valley_pos), n_seg):
+                tmp_valley_height.append(raw_signals[valley_pos[index]])
+            #             print(valley_pos[index], raw_signals[valley_pos[index]])
+            valley_height[start] = np.mean(tmp_valley_height)
+        return abs(np.max(valley_height) - np.min(valley_height))
+
+    def getHeadHeightFeatures(self, raw_signals, paired_edges, n_seg=4):
+        """
+        判断上高低，从顶部峰值进行判断
+        """
+        valley_pos = []
+        for i in range(1, len(paired_edges)):
+            last_down = paired_edges[i - 1][1]
+            cur_up = paired_edges[i][0]
+            valley_pos.append((last_down[1] + cur_up[0]) // 2)
+        valley_height = [0.0] * n_seg
+
         for start in range(0, n_seg):
             tmp_valley_height = []
             for index in range(start, len(valley_pos), n_seg):
