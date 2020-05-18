@@ -30,7 +30,7 @@ class Classifier(object):
         if model_version != '' and model_version in ModelVersionFeatureConfig:
             self.wanted_features = ModelVersionFeatureConfig[model_version]['features']
             model_path = os.path.sep.join([os.path.dirname(os.path.abspath(__file__)), '..', 'models', ModelVersionFeatureConfig[model_version]['path'],'model.pkl'])
-            print("model_path:", model_path)
+            # print("model_path:", model_path)
 
         if model_path == 'train' or model_path == None:
             return
@@ -94,7 +94,7 @@ class Classifier(object):
         f = self.get_features(raw_signals[0:1024], params, request_params, feature_masks=feature_masks)
         feature = self.get_feature_vec(f)
         result = int(self.model.predict(feature)[0])
-        score = self.model.predict_proba(feature)
+        score = self.model.predict_proba(feature).tolist()
         
         retParam = dict()
         retParam['stat'] = result
@@ -126,6 +126,7 @@ class Classifier(object):
     def get_feature_vec(self, features):
         if len(self.wanted_features) > 0:
             feature_list = sorted(self.wanted_features)
+            # print("used features: ", feature_list)
         else:
             feature_list = sorted(self.get_feature_list())
         fea_vec = np.zeros(len(feature_list))

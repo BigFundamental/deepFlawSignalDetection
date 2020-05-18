@@ -17,6 +17,8 @@ import logging
 from sc.signal_manager import SignalMgr
 from sc.deep_predict import DeepPredictor
 import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 
 logger = logging.getLogger('server')
 logger.setLevel(logging.DEBUG)
