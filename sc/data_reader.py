@@ -21,6 +21,18 @@ class DataReader(object):
       -- result.csv
     """
     @staticmethod
+    def search_files(directory, pattern='.csv'):
+        """
+        search files
+        """
+        result_fpath = []
+        for root, dirs, files in os.walk(directory):
+            for fname in files:
+                if fname.find(pattern) != -1:
+                    result_fpath.append(os.sep.join([root, fname]))
+        return result_fpath
+
+    @staticmethod
     def search_label_files(directory, label_file_name='result.csv'):
         """
         detect label file

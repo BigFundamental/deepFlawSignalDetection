@@ -207,9 +207,13 @@ class Classifier(object):
         if not feature_masks or ['up_edges', 'down_edges'] <= feature_masks:
             feature_dict['paired_edges'] = self.getPairedEdges_(params, feature_dict['up_edges'], feature_dict['down_edges'])
 
+
         # 上下沿对比数据
         feature_dict['paired_edge_height'] = self.getPairedEdgeHeight_(signals, feature_dict['paired_edges'])
         feature_dict['paired_edge_height_diff'] = sorted(self.getPairedEdgeDifference_(feature_dict['paired_edge_height']), reverse=True)
+        # 上下沿的绝对值数据，用于判断单个波形的绝对形态
+        feature_dict['paired_edge_num'] = len(feature_dict['paired_edge_height'])
+        feature_dict['paired_edge_avg_height'] = self.getPairedEdgeAvgHeight_(feature_dict['paired_edge_height'])
 
         # 下拉及无头等缺陷的序列周期性检测
         feature_dict['cyclic_nopeak_seq'] = self.unitMaskGenerate(feature_dict['peaks'], feature_dict['paired_edges'], flip=True)
@@ -242,6 +246,9 @@ class Classifier(object):
         feature_dict['skew_level_2'] = feature_dict['skew_level_dist'][1]
         feature_dict['skew_level_3'] = feature_dict['skew_level_dist'][2]
         feature_dict['skew_level_4'] = feature_dict['skew_level_dist'][3]
+
+        # 获取波形上凸起的落差分布
+        feature_dict['neck_height_diff'] = self.getPeakNeckDiffFeatures(raw_signals, feature_dict['peaks'])
 
         # 获取上下沿边的长度diff分位数据
         if len(feature_dict['paired_edge_height_diff']) != 0:
@@ -465,6 +472,14 @@ class Classifier(object):
        #     interviene_skewness.append(abs(bottom1 - bottom2) * 1.0 / interviene_width)
         return interviene_skewness
 
+    def getPairedEdgeAvgHeight_(self, up_down_edge_height_paired_list):
+        if len(up_down_edge_height_paired_list) == 0:
+            return 0.0
+        avg_height = 0.0
+        for up, down in up_down_edge_height_paired_list:
+            avg_height += (up + down) / 2.0
+        return avg_height / len(up_down_edge_height_paired_list)
+
     def getPairedEdgeDifference_(self, up_down_edge_height_paired_list):
         """
         given paired height list, scale difference to [0, 1]
@@ -684,7 +699,6 @@ class Classifier(object):
             max_cyclic_pairs = max(max_cyclic_pairs, cyclic_pair)
         return max_cyclic_pairs
 
-
     def plateau_point(self, raw_signals, peak_point, direction=-1):
         def end_conditions(x, direction, signals):
             return x >= 0 if direction < 0 else x < len(signals)
@@ -738,21 +752,39 @@ class Classifier(object):
             valley_height[start] = np.mean(tmp_valley_height)
         return abs(np.max(valley_height) - np.min(valley_height))
 
-    def getHeadHeightFeatures(self, raw_signals, paired_edges, n_seg=4):
+    def getPeakNeckDiffFeatures(self, raw_signals, peaks, n_seg=4):
         """
-        判断上高低，从顶部峰值进行判断
+        判断上高低，从头部的高低落差进行判断
         """
-        valley_pos = []
-        for i in range(1, len(paired_edges)):
-            last_down = paired_edges[i - 1][1]
-            cur_up = paired_edges[i][0]
-            valley_pos.append((last_down[1] + cur_up[0]) // 2)
-        valley_height = [0.0] * n_seg
+        left_neck_pos = []
+        right_neck_pos = []
+        for i in peaks:
+            left_neck_pos.append(self.plateau_point(raw_signals, i - 1, -1))
+            right_neck_pos.append(self.plateau_point(raw_signals, i - 1, 1))
 
+        left_neck_height = [-1.0] * n_seg
+        right_neck_height = [-1.0] * n_seg
         for start in range(0, n_seg):
-            tmp_valley_height = []
-            for index in range(start, len(valley_pos), n_seg):
-                tmp_valley_height.append(raw_signals[valley_pos[index]])
-            #             print(valley_pos[index], raw_signals[valley_pos[index]])
-            valley_height[start] = np.mean(tmp_valley_height)
-        return abs(np.max(valley_height) - np.min(valley_height))
+            tmp_left_neck_height = []
+            tmp_right_neck_height = []
+            for index in range(start, len(left_neck_pos), n_seg):
+                tmp_left_neck_height.append(raw_signals[left_neck_pos[index]])
+            for index in range(start, len(right_neck_pos), n_seg):
+                tmp_right_neck_height.append(raw_signals[right_neck_pos[index]])
+
+            if len(tmp_left_neck_height) > 0:
+                left_neck_height[start] = np.mean(tmp_left_neck_height)
+            if len(tmp_right_neck_height) > 0:
+                right_neck_height[start] = np.mean(tmp_right_neck_height)
+
+        necks = left_neck_height + right_neck_height
+        sorted_neckheight = sorted(necks, reverse=True)
+        max_heights_avg = np.mean(sorted_neckheight[0:n_seg])
+        min_heights_avg = np.mean(sorted_neckheight[-n_seg:])
+        # left_max = max(left_neck_height)
+        # left_min = min(left_neck_height)
+        # right_max = max(right_neck_height)
+        # right_min = min(right_neck_height)
+
+        max_neck_diff = abs(max_heights_avg - min_heights_avg)
+        return max_neck_diff
