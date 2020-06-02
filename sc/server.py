@@ -38,6 +38,7 @@ class Handler(BaseHTTPRequestHandler):
         return query_components
 
     def do_GET(self):
+        #print("ThreadName: ", threading.currentThread())
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
@@ -85,7 +86,8 @@ def run():
     port = 8000
     print('starting server, port', port)
     server_address = ('', 8000)
-    httpd = HTTPServer(server_address, Handler)
+    #httpd = HTTPServer(server_address, Handler)
+    httpd = ThreadedHTTPServer(server_address, Handler)
     print ('running server...')
     httpd.serve_forever()
 
@@ -116,7 +118,7 @@ class Listener(threading.Thread):
 
 if __name__ == '__main__':
     #server = ThreadedHTTPServer(('localhost', 8000), Handler)
-    #print 'Starting server, use <Ctrl-C> to stop'
+    #print('Starting server, use <Ctrl-C> to stop')
     #server.serve_forever()
 
     # [ Listener(i) for i in range(8) ]
