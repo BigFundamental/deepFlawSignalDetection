@@ -47,12 +47,13 @@ class Handler(BaseHTTPRequestHandler):
         jsonRetParam['resultCode'] = 0
         jsonRetParam['speed'] = 0
         jsonRetParam['speedResult'] = 0
+        enable_deep_predictor = False     ## close deep predictors
         try:
             params = self.get_params_()
             signal_mgr = SignalMgr()
             pred_ret = signal_mgr.process(params['filepath'][0], params)
 
-            if ('mode' not in params) or params['mode'] != 'speed':
+            if enable_deep_predictor and (('mode' not in params) or params['mode'] != 'speed'):
                 # deep_predictor
                 dt, raw_signals = signal_mgr.parse_signals_from_file(params['filepath'][0], 1)
                 deep_features = signal_mgr.get_features(params['filepath'][0], request_param={'skip_row': [1], 'model_path': ['train']})

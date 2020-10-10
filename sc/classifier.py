@@ -6,6 +6,8 @@ import logging
 import os
 from sc.model import ModelVersionFeatureConfig
 from sklearn.externals import joblib
+import pandas as pd
+import xgboost
 
 logger = logging.getLogger('server')
 
@@ -82,42 +84,67 @@ class Classifier(object):
         speed_lower_bound = int(request_params.get('speed_lower_bound', [params['SPEED_LOWER_BOUND']])[0])
         speed_upper_bound = int(request_params.get('speed_upper_bound', [params['SPEED_UPPER_BOUND']])[0])
         if retParam['speed'] < speed_lower_bound or retParam['speed'] > speed_upper_bound:
-            retParam['speedResult']= 1
+            retParam['speedResult'] = 1
         
         if retParam['speedResult'] == 1:
             retParam['stat'] = 1
             retParam['reason'] = Classifier.FLAW_TYPE_SPEED_INVALID
         return retParam
 
-    def predictWithModel(self, raw_signals, params, request_params = dict()):
+    def predictWithRule(self, features, params):
+        """
+        :param features: 针对单个波形的长、宽 数量进行检测，目前按照mean + 2 * delta的方差方案进行对比
+        :return: check mean width / height nums
+        """
+        avg_unit_length = np.mean(features['unit_interviene_length']) if len(features['unit_interviene_length']) > 0 else 0.0
+        avg_edge_height = features['paired_edge_avg_height']
+        avg_edge_num = features['paired_edge_num']
+
+        # print('avg_unit_length: %f, avg_edge_height: %f, avg_edge_num: %f' % (avg_unit_length, avg_edge_height, avg_edge_num))
+        if avg_unit_length > params['INTERVIEN_LEN_MEAN'] + 2.0 * params['INTERVIEN_LEN_STD'] or \
+                avg_unit_length < params['INTERVIEN_LEN_MEAN'] - 2.0 * params['INTERVIEN_LEN_STD']:
+            # print("interviene detects error")
+            return False
+
+        if avg_edge_height > params['EDGE_HEIGHT_MEAN'] + 2.0 * params['EDGE_HEIGHT_STD'] or \
+                avg_edge_height < params['EDGE_HEIGHT_MEAN'] - 2.0 * params['EDGE_HEIGHT_STD']:
+            # print("edge height detects error")
+            return False
+
+        if avg_edge_num > params['EDGE_NUM_MEAN'] + 2.0 * params['EDGE_NUM_STD'] or \
+                avg_edge_num < params['EDGE_NUM_MEAN'] - 2.0 * params['EDGE_NUM_STD']:
+            # print("edge num detects error")
+            return False
+
+
+
+        return True
+
+    def predictWithModel(self, raw_signals, params, request_params=dict()):
         feature_masks = self.wanted_features if len(self.wanted_features) > 0 else None
         f = self.get_features(raw_signals[0:1024], params, request_params, feature_masks=feature_masks)
-        feature = self.get_feature_vec(f)
-        result = int(self.model.predict(feature)[0])
-        score = self.model.predict_proba(feature).tolist()
-        
+        feature, feature_df = self.get_feature_vec(f)
+        # for xgboost datastructure
+        dMatrixFeature = xgboost.DMatrix(feature_df.values)
+        score = self.model.predict(dMatrixFeature, ntree_limit=self.model.best_ntree_limit)[0]
+        result = round(score)
+
+        if not self.predictWithRule(f, params):
+            result = 1
+            score = 0.999
+
         retParam = dict()
         retParam['stat'] = result
         retParam['reason'] = -1
         retParam['speed'] = 0
         retParam['speedResult'] = 0
         retParam['waveResult'] = result
-        retParam['waveScore'] = score[0][1]
+        retParam['waveScore'] = float(score)
 
         speed_params = self.predictSpeedOnly(raw_signals, params, request_params)
         retParam['speed'] = speed_params['speed']
         retParam['speedResult'] = speed_params['speedResult']
-       # calculate speed
-       # samplerate = request_params.get('samplerate', [params['SAMPLING_DT']])[0]
-       # #samplerate = request_params.get('samplerate', params['SAMPLING_DT']) 
-       # retParam['speed'] = self.calcSpeed(raw_signals, params, float(samplerate))
 
-       # #judge speeds
-       # speed_lower_bound = int(request_params.get('speed_lower_bound', [params['SPEED_LOWER_BOUND']])[0])
-       # speed_upper_bound = int(request_params.get('speed_upper_bound', [params['SPEED_UPPER_BOUND']])[0])
-       # if retParam['speed'] < speed_lower_bound or retParam['speed'] > speed_upper_bound:
-       #     retParam['speedResult']= 1
-       # 
         if result == 0 and retParam['speedResult'] == 1:
             retParam['stat'] = 1
             retParam['reason'] = Classifier.FLAW_TYPE_SPEED_INVALID
@@ -132,7 +159,9 @@ class Classifier(object):
         fea_vec = np.zeros(len(feature_list))
         for i in range(len(feature_list)):
             fea_vec[i] = features[feature_list[i]]
-        return fea_vec.reshape(1, -1)
+
+        # print(pd.DataFrame(fea_vec.reshape(1, -1), columns=feature_list))
+        return fea_vec.reshape(1, -1), pd.DataFrame(fea_vec.reshape(1, -1), columns=feature_list)
 
     def get_feature_list(self):
         """
@@ -675,7 +704,7 @@ class Classifier(object):
             positive_label = 0
             negtive_label = 1
 
-        unit_num = len(paired_edges) - 1
+        unit_num = max(0, len(paired_edges) - 1)
         # initialize intial labels
         masks = np.full(unit_num, negtive_label)
         for i in range(0, unit_num):
@@ -742,8 +771,11 @@ class Classifier(object):
             last_down = paired_edges[i - 1][1]
             cur_up = paired_edges[i][0]
             valley_pos.append((last_down[1] + cur_up[0]) // 2)
-        valley_height = [0.0] * n_seg
 
+        if len(valley_pos) == 0:
+            return 0.0
+
+        valley_height = [0.0] * n_seg
         for start in range(0, n_seg):
             tmp_valley_height = []
             for index in range(start, len(valley_pos), n_seg):

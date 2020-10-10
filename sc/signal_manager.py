@@ -36,7 +36,13 @@ class SignalMgr(object):
            'SAMPLING_DT': 0.00004,
            'SPEED_LOWER_BOUND':12300,
            'SPEED_UPPER_BOUND':15500,
-           'DEFAULT_MODEL_VERSION':'skew_valley_diff_with_edge_height'
+           'DEFAULT_MODEL_VERSION':'skew_valley_diff_with_edge_height',
+           'EDGE_HEIGHT_MEAN': 1.793800,
+           'EDGE_HEIGHT_STD': 0.178329,
+           'EDGE_NUM_MEAN': 31.795307,
+           'EDGE_NUM_STD': 4.474540,
+           'INTERVIEN_LEN_MEAN': 6.621549,
+           'INTERVIEN_LEN_STD': 2.183348
    }
 
    def __init__(self):
@@ -46,7 +52,7 @@ class SignalMgr(object):
        dt, raw_signals = self.parse_signals_from_file(file_path, int(request_param.get('skip_row', [0])[0]))
 
        if request_param.has_key('model_path'):
-           classifier = Classifier(model_path = request_param['model_path'][0])
+           classifier = Classifier(model_path=request_param['model_path'][0])
        else:
            classifier = Classifier(model_version=SignalMgr.signalParams['DEFAULT_MODEL_VERSION'])
        return classifier.get_speed_features(raw_signals, SignalMgr.signalParams)
@@ -55,7 +61,7 @@ class SignalMgr(object):
        dt, raw_signals = self.parse_signals_from_file(file_path, int(request_param.get('skip_row', [0])[0]))
 
        if 'model_path' in request_param:
-           classifier = Classifier(model_path = request_param['model_path'][0])
+           classifier = Classifier(model_path=request_param['model_path'][0])
        else:
            classifier = Classifier(model_version=SignalMgr.signalParams['DEFAULT_MODEL_VERSION'])
        return classifier.get_features(raw_signals, SignalMgr.signalParams, request_param)

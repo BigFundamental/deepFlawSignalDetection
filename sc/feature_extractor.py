@@ -197,7 +197,10 @@ class FeatureExtractor(object):
         """
         return valley point in signals
         """
+        if len(signals) == 0:
+            return 0.
         return np.min(signals)
+
     def outlierPointNum(self, signals, threshold, cmp_func):
         """
         outlier numbers
