@@ -127,7 +127,7 @@ class Classifier(object):
         # for xgboost datastructure
         dMatrixFeature = xgboost.DMatrix(feature_df.values)
         score = self.model.predict(dMatrixFeature, ntree_limit=self.model.best_ntree_limit)[0]
-        result = round(score)
+        result = int(round(score))
 
         if not self.predictWithRule(f, params):
             result = 1

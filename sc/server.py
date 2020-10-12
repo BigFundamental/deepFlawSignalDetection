@@ -43,8 +43,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
         jsonRetParam = dict()
-        jsonRetParam['errorCode'] = 0
-        jsonRetParam['resultCode'] = 0
+        jsonRetParam['errorCode'] = -1
+        jsonRetParam['resultCode'] = -1
         jsonRetParam['speed'] = 0
         jsonRetParam['speedResult'] = 0
         enable_deep_predictor = False     ## close deep predictors
