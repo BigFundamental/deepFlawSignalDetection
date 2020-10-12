@@ -53,10 +53,12 @@ def xgboost_predict(train_x, train_y, test_x, test_y, weight):
     xgbModel = xgboost.train(param, dtrain, 300, evallist, early_stopping_rounds=30)
     # xgbModel = joblib.load("./model.xgboost")
     preds = xgbModel.predict(dtest, ntree_limit=xgbModel.best_ntree_limit)
-    print(preds)
-    pResult = [1 if value >  for value in preds]
-    print(pResult)
-    print(classification_report(test_y, pResult))
+
+    for i in range(31, 51):
+        print("======= Param: ", i / 100.0)
+        pResult = [1 if value >= i / 100.0 else 0 for value in preds]
+        print(pResult)
+        print(classification_report(test_y, pResult))
 
     joblib.dump(xgbModel, './model.xgboost')
     # xgboost.plot_importance(xgbModel, importance_type='gain')
