@@ -5,6 +5,7 @@ from sc.deep_predict import DeepPredictor
 from sklearn.externals import joblib
 import numpy as np
 import pandas as pd
+from instance import config as insconf
 import warnings
 import sc.predict_test
 from configs import FEATURE_CONFIG
@@ -35,6 +36,36 @@ warnings.filterwarnings('ignore')
 #     # myplt = plot_learning_curve(model, 'training monitoring', train_x, train_y)
 #     # myplt.show()
 #     return pResult
+
+def xgboost_multi_predict(train_x, train_y, test_x, test_y, weight):
+    dtrain = xgboost.DMatrix(train_x.values, label=train_y.values, weight=weight)
+    dtest = xgboost.DMatrix(test_x.values, label=test_y.values)
+    param = {
+        'booster': 'gbtree',
+        'objective': 'multi:softprob',
+        'num_class': 13,
+        'colsample_bytree': 1.0,
+        'subsample': 1.0,
+        'max_depth': 5,
+        'learning_rate': 0.15
+    }
+    param['eval_metric'] = ['error']
+    evallist = [(dtest, 'eval'), (dtrain, 'train')]
+    xgbModel = xgboost.train(param, dtrain, 300, evallist, early_stopping_rounds=30)
+    # xgbModel = joblib.load("./model.xgboost")
+    preds = xgbModel.predict(dtest, ntree_limit=xgbModel.best_ntree_limit)
+    print(preds)
+    # for i in range(31, 51):
+    #     print("======= Param: ", i / 100.0)
+    #     pResult = [1 if value >= i / 100.0 else 0 for value in preds]
+    #     print(pResult)
+    #     print(classification_report(test_y, pResult))
+
+    # joblib.dump(xgbModel, './model.xgboost')
+    # xgboost.plot_importance(xgbModel, importance_type='gain')
+    # plt.show()
+    return pResult
+
 
 # Dmatrix Version
 def xgboost_predict(train_x, train_y, test_x, test_y, weight):
@@ -124,17 +155,55 @@ def instance_weight(kind):
     weight_mapping = lambda x: weight_map[x] if x in weight_map else 1.0
     return kind.map(weight_mapping)
 
+def signle_xgboost_predict():
+    train_fea_df_x, train_fea_df_y, tkind, test_fea_df_x, test_fea_df_y, test_k, validate_fea_df_x, validate_fea_df_y, vk = feature_prepare(
+        "feature_v2.2.5")
+    weight = instance_weight(tkind)
+    test_predict_label = xgboost_predict(train_fea_df_x, train_fea_df_y, test_fea_df_x, test_fea_df_y, weight)
+    err_predict_index = (test_predict_label != test_fea_df_y)
+    err_kinds_df = test_k[err_predict_index]
+    print(err_kinds_df.value_counts())
+
+def multi_xgboost_predict():
+    train_fea_df_x, train_fea_df_y, tkind, test_fea_df_x, test_fea_df_y, test_k, validate_fea_df_x, validate_fea_df_y, vk = feature_prepare(
+        "feature_v2.2.5")
+
+
+
 if __name__ == "__main__":
     train_fea_df_x, train_fea_df_y, tkind, test_fea_df_x, test_fea_df_y, test_k, validate_fea_df_x, validate_fea_df_y, vk = feature_prepare("feature_v2.2.5")
+    filter_index = (tkind == -2)
+    print(filter_index)
+    train_fea_df_x = train_fea_df_x[~filter_index]
+    train_fea_df_y = train_fea_df_y[~filter_index]
+    tkind = tkind[~filter_index]
+
     weight = instance_weight(tkind)
     test_predict_label = xgboost_predict(train_fea_df_x, train_fea_df_y, test_fea_df_x, test_fea_df_y, weight)
     # # validate_predict_label = xgboost_predict(train_fea_df_x, train_fea_df_y, validate_fea_df_x, validate_fea_df_y, weight)
     # # train_predict_label = xgboost_predict(train_fea_df_x, train_fea_df_y, train_fea_df_x, train_fea_df_y)
-    #
-    #
+
     err_predict_index = (test_predict_label != test_fea_df_y)
-    err_kinds_df = test_k[err_predict_index]
-    print(err_kinds_df.value_counts())
+    # print(test_k.value_counts())
+    # print(insconf.INVERSE_KIND_DEF)
+    for k in test_k.tolist():
+        if k not in insconf.INVERSE_KIND_DEF:
+            print(k, " is not found")
+
+    kind_names = test_k.map(lambda x: insconf.INVERSE_KIND_DEF[x])
+    err_dist_df = pd.DataFrame({'kind': kind_names, 'err_predict': err_predict_index.astype(int)})
+    gerr_dist_df = err_dist_df.groupby('kind').agg({'err_predict': ['count', 'sum']})
+    # flatten columns
+    gerr_dist_df.columns = ['_'.join(col).strip() for col in gerr_dist_df.columns.values]
+    # print(gerr_dist_df['err_predict']['sum'] * 100.0 / gerr_dist_df['err_predict']['count'])
+    gerr_dist_df = gerr_dist_df.reset_index()
+    gerr_dist_df['err_rate'] = gerr_dist_df['err_predict_sum'] * 100.0 / gerr_dist_df['err_predict_count']
+    print(gerr_dist_df)
+    # print(err_dist_df)
+    # test_k['kind'] = kind_names
+    # err_kinds_df = test_k[err_predict_index]
+    # print(err_kinds_df)
+    # print(err_kinds_df.value_counts())
 
     # err_predict_index = (validate_predict_label != validate_fea_df_y)
     # err_kinds_df = vk[err_predict_index]
