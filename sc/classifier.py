@@ -116,8 +116,6 @@ class Classifier(object):
             # print("edge num detects error")
             return False
 
-
-
         return True
 
     def predictWithModel(self, raw_signals, params, request_params=dict()):
@@ -205,6 +203,8 @@ class Classifier(object):
         # get peaks / edges, basic features:
         feature_dict['peaks'] = self.getPeakLoc_(signals, params)
         feature_dict['down_peaks'] = self.getDownPeakLoc_(signals, params)
+        feature_dict['level1_down_peaks'] = self.getDownPeakLoc_(signals, params, level='level1')
+        feature_dict['level2_down_peaks'] = self.getDownPeakLoc_(signals, params, level='level2')
         feature_dict['negative_peak_num'] = self.getNegativePeakNum_(raw_signals, params)
         feature_dict['max_down_peak_point'] = self.getExtremeDownPeakVal_(raw_signals, params)
         feature_dict['up_edges'] = self.getUpEdges_(signals, params)
@@ -216,6 +216,8 @@ class Classifier(object):
             feature_dict['peaks_num'] = len(feature_dict['peaks'])
         if not feature_masks or 'down_peaks_num' in feature_masks:
             feature_dict['down_peaks_num'] = len(feature_dict['down_peaks'])
+            feature_dict['level1_down_peaks_num'] = len(feature_dict['level1_down_peaks'])
+            feature_dict['level2_down_peaks_num'] = len(feature_dict['level2_down_peaks'])
         if not feature_masks or 'up_edges_num' in feature_masks:
             feature_dict['up_edges_num'] = len(feature_dict['up_edges'])
         if not feature_masks or 'down_edges_num' in feature_masks:
@@ -247,8 +249,20 @@ class Classifier(object):
         # 下拉及无头等缺陷的序列周期性检测
         feature_dict['cyclic_nopeak_seq'] = self.unitMaskGenerate(feature_dict['peaks'], feature_dict['paired_edges'], flip=True)
         feature_dict['cyclic_downpeak_seq'] = self.unitMaskGenerate(feature_dict['down_peaks'], feature_dict['paired_edges'])
-        feature_dict['cyclic_intense_nopeak'] =  self.cyclicIntense(feature_dict['cyclic_nopeak_seq'], params['PHRASE_NUM'])
+        feature_dict['cyclic_level1_downpeak_seq'] = self.unitMaskGenerate(feature_dict['level1_down_peaks'], feature_dict['paired_edges'])
+        feature_dict['cyclic_level2_downpeak_seq'] = self.unitMaskGenerate(feature_dict['level2_down_peaks'], feature_dict['paired_edges'])
+        feature_dict['cyclic_intense_nopeak'] = self.cyclicIntense(feature_dict['cyclic_nopeak_seq'], params['PHRASE_NUM'])
         feature_dict['cyclic_intense_downpeak'] = self.cyclicIntense(feature_dict['cyclic_downpeak_seq'], params['PHRASE_NUM'])
+        feature_dict['cyclic_intense_level1_downpeak'] = self.cyclicIntense(feature_dict['cyclic_level1_downpeak_seq'], params['PHRASE_NUM'])
+        feature_dict['cyclic_intense_level2_downpeak'] = self.cyclicIntense(feature_dict['cyclic_level2_downpeak_seq'], params['PHRASE_NUM'])
+
+        # 将波形的下拉须分为波形内部与外部的两部分进行统计
+        # if feature_dict['down_peaks_num'] > 0:
+        #     feature_dict['down_peak_num_within_body'] = sum(feature_dict['cyclic_downpeak_seq'])
+        #     feature_dict['down_peak_num_outside_body'] = feature_dict['down_peaks_num'] - feature_dict['down_peak_num_within_body']
+        # else:
+        #     feature_dict['down_peak_num_within_body'] = 0
+        #     feature_dict['down_peak_num_outside_body'] = 0
 
         # 获取波形单元间隔宽度数据
         feature_dict['unit_interviene_length'] = self.getIntervieneLength_(feature_dict['paired_edges'])
@@ -406,12 +420,18 @@ class Classifier(object):
         """
         return self.featureExtractor.valley(raw_signals)
 
-    def getDownPeakLoc_(self, signals, params):
+    def getDownPeakLoc_(self, signals, params, level='default'):
         """
         return all extreme down-peak locations
         """
         _bottom_window_size = params['DOWN_PEAK_WINDOW_SIZE']
-        _bottom_threshold = params['DOWN_PEAK_THESHOLD']
+        if level == 'level1':
+            _bottom_threshold = params['DOWN_PEAK_LEVEL1_THRESHOLD']
+        elif level == 'level2':
+            _bottom_threshold = params['DOWN_PEAK_LEVEL2_THRESHOLD']
+        elif level == 'default':
+            _bottom_threshold = params['DOWN_PEAK_THESHOLD']
+
         return self.featureExtractor.peakPointers(signals, _bottom_window_size, _bottom_threshold, True)
 
     def getUpEdges_(self, signals, params):
@@ -693,11 +713,10 @@ class Classifier(object):
     def unitMaskGenerate(self, eventAxis, paired_edges, flip=False):
         """
         paired_edges divide signals into units
-        foreach unit we will give each signals a label-1 if eventAxis appears
+        foreach unit we will give each signals a label-1 unitMaskGenerateif eventAxis appears
         if flip equals true, we will use 0 label for positive events
         return list of masks
         """
-        unit_num = len(paired_edges)
         positive_label = 1
         negtive_label = 0
         if flip == True:
@@ -776,12 +795,14 @@ class Classifier(object):
             return 0.0
 
         valley_height = [0.0] * n_seg
+        adj_diff_seq = []
         for start in range(0, n_seg):
             tmp_valley_height = []
             for index in range(start, len(valley_pos), n_seg):
                 tmp_valley_height.append(raw_signals[valley_pos[index]])
             #             print(valley_pos[index], raw_signals[valley_pos[index]])
             valley_height[start] = np.mean(tmp_valley_height)
+
         return abs(np.max(valley_height) - np.min(valley_height))
 
     def getPeakNeckDiffFeatures(self, raw_signals, peaks, n_seg=4):

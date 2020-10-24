@@ -171,7 +171,8 @@ def multi_xgboost_predict():
 
 
 if __name__ == "__main__":
-    train_fea_df_x, train_fea_df_y, tkind, test_fea_df_x, test_fea_df_y, test_k, validate_fea_df_x, validate_fea_df_y, vk = feature_prepare("feature_v2.2.5")
+    # train_fea_df_x, train_fea_df_y, tkind, test_fea_df_x, test_fea_df_y, test_k, validate_fea_df_x, validate_fea_df_y, vk = feature_prepare("feature_v2.2.5")
+    train_fea_df_x, train_fea_df_y, tkind, test_fea_df_x, test_fea_df_y, test_k, validate_fea_df_x, validate_fea_df_y, vk = feature_prepare("feature_v3.0.0")
     filter_index = (tkind == -2)
     print(filter_index)
     train_fea_df_x = train_fea_df_x[~filter_index]

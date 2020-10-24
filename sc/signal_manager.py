@@ -31,6 +31,8 @@ class SignalMgr(object):
            'DOWN_PEAK_APPEARING_RATIO': 0.25,
            'DOWN_PEAK_WINDOW_SIZE': 9,
            'DOWN_PEAK_THESHOLD': -1.0,
+           'DOWN_PEAK_LEVEL1_THRESHOLD': -0.5,
+           'DOWN_PEAK_LEVEL2_THRESHOLD': -0.25,
            'WITH_HEADER': False,
            'COLUMN_NUM': 1,
            'SAMPLING_DT': 0.00004,
